@@ -193,10 +193,29 @@ static void subproc_prepareExecvArgs(run_t* run) {
             run->args[x] = _HF_INPUT_FILE_PATH;
         } else if (ph_str) {
             static __thread char argData[PATH_MAX];
+
+            /*
             snprintf(argData, sizeof(argData), "%.*s%s",
                 (int)(ph_str - run->global->exe.cmdline[x]), run->global->exe.cmdline[x],
                 _HF_INPUT_FILE_PATH);
+            */
+
+            // Replace the placeholder in the middle of an arg, without affecting prefix or postfix
+            static __thread char pref[PATH_MAX];
+            static __thread const char* post;
+            size_t pref_len = (size_t) (ph_str - run->global->exe.cmdline[x]);
+            size_t post_start = pref_len + sizeof(_HF_FILE_PLACEHOLDER) - 1;
+            strncpy(pref, run->global->exe.cmdline[x], pref_len);
+            pref[pref_len] = 0x0;
+            post = run->global->exe.cmdline[x] + post_start;
+
+            snprintf(argData, sizeof(argData), "%s%s%s",
+                pref, _HF_INPUT_FILE_PATH, post
+                );
+
+
             run->args[x] = argData;
+            //LOG_E("%s -> %s", run->global->exe.cmdline[x], run->args[x]);
         } else {
             run->args[x] = (char*)run->global->exe.cmdline[x];
         }
